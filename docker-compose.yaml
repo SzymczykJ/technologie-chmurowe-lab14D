@@ -1,24 +1,25 @@
 services:
-  # 1. Kontener bazy danych (MySQL)
+  # Serwer bazy danych MySQL wykorzystujący Docker Secrets
   mysql:
     image: mysql:8.0.36
     container_name: lemp_mysql
     restart: unless-stopped
     environment:
-      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
+      MYSQL_ROOT_PASSWORD_FILE: /run/secrets/db_root_password
       MYSQL_DATABASE: ${DB_NAME}
     volumes:
       - mysql_data:/var/lib/mysql
     networks:
       - backend
-   
+    secrets:
+      - db_root_password
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
       interval: 10s
       timeout: 5s
       retries: 3
 
-  # 2. Kontener procesora PHP (PHP-FPM)
+  # Kontener procesora PHP (PHP-FPM)
   php:
     image: php:8.2-fpm-alpine
     container_name: lemp_php
@@ -28,7 +29,7 @@ services:
     networks:
       - backend
 
-  # 3. Kontener serwera WWW (Nginx)
+  # Kontener serwera WWW (Nginx)
   nginx:
     image: nginx:1.25-alpine
     container_name: lemp_nginx
@@ -43,15 +44,13 @@ services:
       - backend
     depends_on:
       - php
-   
-  
     healthcheck:
       test: ["CMD", "nc", "-z", "127.0.0.1", "80"]
       interval: 10s
       timeout: 5s
       retries: 3
 
-  # 4. Kontener phpMyAdmin
+  # Kontener phpMyAdmin
   phpmyadmin:
     image: phpmyadmin/phpmyadmin:5.2.1
     container_name: lemp_phpmyadmin
@@ -74,3 +73,8 @@ networks:
 
 volumes:
   mysql_data:
+
+# Definicja poziomu top-level dla sekretów aplikacji
+secrets:
+  db_root_password:
+    file: ./db_root_password.txt
